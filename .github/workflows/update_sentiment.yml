@@ -1,0 +1,38 @@
+name: Update News Sentiment Daily
+
+on:
+  schedule:
+    - cron: '0 12 * * *'  # Runs daily at 12:00 UTC
+  workflow_dispatch:        # Allows manual triggering of the workflow
+
+jobs:
+  update-sentiment:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'  # Specify the Python version you need
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install requests vaderSentiment pandas
+
+    - name: Run Sentiment Analysis Script
+      env:
+        NEWSAPI_KEY: ${{ secrets.NEWSAPI_KEY }}
+      run: |
+        python scripts/update_sentiment.py
+
+    - name: Commit and Push Changes
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add news_sentiment.csv
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update news sentiment data [skip ci]"
+        git push

@@ -64,16 +64,29 @@ def update_csv(symbol, sentiment_data, csv_path):
     except FileNotFoundError:
         # If the file does not exist, create a new DataFrame with headers
         df = pd.DataFrame(columns=['symbol', 'date', 'sentiment'])
-
-    # Convert existing dates to set for quick lookup
-    existing_dates = set(df[df['symbol'] == symbol]['date'].dt.date)
-
+    
+    # Ensure 'date' column is datetime, even if the DataFrame is empty
+    if 'date' in df.columns:
+        if not pd.api.types.is_datetime64_any_dtype(df['date']):
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    
+    # Check if DataFrame is empty
+    if df.empty:
+        existing_dates = set()
+    else:
+        # Convert existing dates to set for quick lookup
+        existing_dates = set(df[df['symbol'] == symbol]['date'].dt.date)
+    
     # Prepare new data
     new_rows = []
     for date, sentiment in sentiment_data.items():
         if date not in existing_dates:
-            new_rows.append({'symbol': symbol, 'date': date, 'sentiment': sentiment})
-
+            new_rows.append({
+                'symbol': symbol,
+                'date': date.strftime("%Y-%m-%d"),
+                'sentiment': sentiment
+            })
+    
     # Append new data
     if new_rows:
         new_df = pd.DataFrame(new_rows)
